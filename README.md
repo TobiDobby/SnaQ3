@@ -62,7 +62,7 @@ This resumable experiment times two full player grids, movement preparation, Bel
 
 ### Supplementary dense scaling
 
-This uses arbitrary logical cell counts `m`, including non-square values, to measure intermediate dense-statevector sizes. It times two full registers per backend. The workload is a fixed, matched logical update trace without playable board geometry. Run it **after** full-grid scaling in the same output directory so previously measured square-grid points are not duplicated.
+This uses arbitrary logical cell counts `m`, including non-square values, to measure intermediate dense-statevector sizes. It times two full registers per backend. The workload is a fixed, matched logical update trace without playable board geometry. Run it **after** full-grid scaling in the same `results/reproduction/` tree. The synthetic benchmark reads the full-grid raw CSV from `results/reproduction/runtime/` to avoid duplicating measured square-grid points.
 
 ```sh
 .venv/bin/python -m snaq3.dense_scaling_benchmark \
@@ -85,7 +85,3 @@ The resolver figure is `results/payoff_by_backend.{pdf,png}`. The runtime figure
 .venv/bin/python -m snaq3.plotting --payoff-only --output-directory results
 .venv/bin/python -m snaq3.scaling_plotting --output-directory results
 ```
-
-## Citation
-
-T. Pirkl and N. Brandl, *SnaQ3: A Conflicting Interest Two-Player Game using Qutrits* (2026). The repository includes the LaTeX source at `paper/snaq3.tex`.
