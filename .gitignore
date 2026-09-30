@@ -1,0 +1,28 @@
+# Local Python environments and build products
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Local editor and agent state
+.idea/
+.vscode/
+.agents/
+.codex/
+.DS_Store
+
+# Scratch output; final CSV, JSON, PDF, and PNG files in results/ are retained
+*.log
+*.tmp
+scratch/
+tmp/
+results/reproduction/
+results/*_smoke/
+results/*/smoke/
