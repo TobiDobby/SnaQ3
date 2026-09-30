@@ -1,5 +1,6 @@
 import csv
 import json
+import shutil
 import tempfile
 import unittest
 from dataclasses import replace
@@ -11,6 +12,7 @@ from snaq3.dense_scaling_benchmark import (
     DenseScalingConfig, RAW_FIELDS, run_dense_scaling, summarize, synthetic_workload,
 )
 from snaq3.scaling_plotting import COLORS, merged_rows, plot_scaling
+import snaq3.scaling_plotting as scaling_plotting
 from snaq3.simulation import BACKENDS
 
 
@@ -139,3 +141,35 @@ class DenseScalingTests(unittest.TestCase):
             self.assertTrue((Path(directory) / "runtime_vs_grid_size.png").exists())
         self.assertIn("none", faces)
         self.assertIn(COLORS["qutrit_circuit_exact"], faces)
+
+    def test_final_runtime_figure_uses_merged_scaling_rows(self):
+        source = Path(__file__).resolve().parents[1] / "results"
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            (output / "runtime").mkdir()
+            for name in ("dense_synthetic_summary.csv",
+                         "runtime/runtime_scaling_summary.csv"):
+                shutil.copyfile(source / name, output / name)
+            original = scaling_plotting.plot_scaling_axis
+            seen = []
+
+            def capture(ax, real, synthetic):
+                rows = original(ax, real, synthetic)
+                seen.append(rows)
+                return rows
+
+            with patch.object(scaling_plotting, "plot_scaling_axis", side_effect=capture):
+                plot_scaling(output)
+            self.assertEqual(len(seen), 1)
+            self.assertEqual(len(seen[0]), 39)
+            self.assertTrue(any(row["backend"] == "qutrit_circuit_exact"
+                                and row["grid_cells_per_player"] == "6"
+                                and row["synthetic_scaling_point"] == "True"
+                                for row in seen[0]))
+            self.assertTrue(any(row["backend"] == "qutrit_tableau_clifford"
+                                and row["grid_cells_per_player"] == "3600"
+                                for row in seen[0]))
+            self.assertTrue(any(row["backend"] == "qutrit_circuit_exact"
+                                and row["grid_cells_per_player"] == "25"
+                                and int(row["oom_repetitions"]) > 0
+                                for row in seen[0]))

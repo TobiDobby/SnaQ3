@@ -33,33 +33,31 @@ def merged_rows(real_summary, synthetic_summary):
     return list(combined.values())
 
 
-def plot_scaling(output: Path, summary: list[dict] | None = None,
-                 synthetic_summary: list[dict] | None = None):
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
+def load_scaling_summaries(output: Path):
+    """Load the final full-grid and synthetic summaries for either figure."""
+    output = Path(output)
+    runtime_source = "runtime/runtime_scaling_summary.csv"
+    summary = _read_optional(output / runtime_source)
+    if not summary:
+        runtime_source = "runtime_scaling_summary.csv"
+        summary = _read_optional(output / runtime_source)
+    synthetic_summary = _read_optional(output / "dense_synthetic_summary.csv")
+    return summary, synthetic_summary, runtime_source
+
+
+def plot_scaling_axis(ax, real_summary, synthetic_summary):
+    """Draw the canonical merged runtime scaling visualization on an Axes."""
     from matplotlib.lines import Line2D
     from matplotlib.patches import Rectangle
 
-    output = Path(output)
-    runtime_source = "runtime/runtime_scaling_summary.csv"
-    if summary is None:
-        summary = _read_optional(output / runtime_source)
-        if not summary:
-            runtime_source = "runtime_scaling_summary.csv"
-            summary = _read_optional(output / runtime_source)
-    if synthetic_summary is None:
-        synthetic_summary = _read_optional(output / "dense_synthetic_summary.csv")
-    rows = merged_rows(summary, synthetic_summary)
+    rows = merged_rows(real_summary, synthetic_summary)
     if not rows:
-        return
+        return rows
     cells = [int(row["grid_cells_per_player"]) for row in rows]
     measured = [float(row["mean_runtime_seconds"]) for row in rows
                 if row["mean_runtime_seconds"] != ""]
     xlim = (min(cells) / 1.5, max(cells) * 1.5)
     ylim = (max(min(measured) / 30, 1e-9), max(measured) * 2) if measured else (1e-4, 1)
-    plt.rcParams.update({"font.size": 9, "pdf.fonttype": 42})
-    fig, ax = plt.subplots(figsize=(7.2, 4.2), constrained_layout=True)
     ax.add_patch(Rectangle((xlim[0], 0), xlim[1] - xlim[0], .11,
                            transform=ax.get_xaxis_transform(), facecolor="0.965",
                            edgecolor="none", zorder=0))
@@ -109,6 +107,28 @@ def plot_scaling(output: Path, summary: list[dict] | None = None,
                        ls="None", label="△ Timeout")]
     ax.legend(handles=handles, loc="upper right", ncol=1, fontsize=7,
               facecolor="white", framealpha=0.88)
+    return rows
+
+
+def plot_scaling(output: Path, summary: list[dict] | None = None,
+                 synthetic_summary: list[dict] | None = None):
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    output = Path(output)
+    if summary is None or synthetic_summary is None:
+        loaded_real, loaded_synthetic, runtime_source = load_scaling_summaries(output)
+        summary = loaded_real if summary is None else summary
+        synthetic_summary = loaded_synthetic if synthetic_summary is None else synthetic_summary
+    else:
+        runtime_source = "runtime/runtime_scaling_summary.csv"
+    plt.rcParams.update({"font.size": 9, "pdf.fonttype": 42})
+    fig, ax = plt.subplots(figsize=(7.2, 4.2), constrained_layout=True)
+    rows = plot_scaling_axis(ax, summary, synthetic_summary)
+    if not rows:
+        plt.close(fig)
+        return
     for extension in ("pdf", "png"):
         fig.savefig(output / f"runtime_vs_grid_size.{extension}", dpi=300)
     plt.close(fig)
