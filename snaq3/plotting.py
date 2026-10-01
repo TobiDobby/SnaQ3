@@ -5,9 +5,10 @@ import csv
 from math import cos, pi
 from pathlib import Path
 
-from .scaling_plotting import BACKEND_ORDER, COLORS, MARKERS
+from .scaling_plotting import COLORS, MARKERS
 
-SHORT_LABELS = ("Qutrit SV", "Qutrit Tab", "Qubit SV", "Qubit Tab")
+EXACT_BACKENDS = ("qutrit_circuit_exact", "qubit_transpiled")
+SHORT_LABELS = ("Qutrit SV", "Qubit SV")
 
 
 def plot_payoff(output: Path) -> None:
@@ -22,7 +23,7 @@ def plot_payoff(output: Path) -> None:
 
     plt.rcParams.update({"font.size": 8, "pdf.fonttype": 42})
     fig, ax = plt.subplots(figsize=(3.35, 2.0), constrained_layout=True)
-    for index, backend in enumerate(BACKEND_ORDER):
+    for index, backend in enumerate(EXACT_BACKENDS):
         row = summary[backend]
         mean = float(row["mean_F_avg"])
         low = float(row["ci95_low_F_avg"] or mean)
@@ -35,8 +36,8 @@ def plot_payoff(output: Path) -> None:
                label=r"Analytical $W_Q$")
     ax.axhline(9 / 16, color="0.5", ls=":", lw=1,
                label=r"Analytical $W_C$")
-    ax.set_xticks(range(4), SHORT_LABELS, fontsize=7)
-    ax.set_xlim(-.4, 3.4)
+    ax.set_xticks(range(len(EXACT_BACKENDS)), SHORT_LABELS, fontsize=7)
+    ax.set_xlim(-.4, len(EXACT_BACKENDS) - .6)
     ax.set_ylim(.5, .7)
     ax.set_ylabel(r"Average payoff $F_{\mathrm{avg}}$")
     ax.legend(loc="center right", fontsize=6.5, framealpha=.9)

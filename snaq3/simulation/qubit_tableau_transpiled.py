@@ -28,7 +28,6 @@ class QubitTableauTranspiled:
     name = "qubit_tableau_transpiled"
     metadata = {
         "grid_backend": "two full QuickQudits Tableau d=2 registers, 2m qubits each",
-        "movement_backend": "QuickQudits Tableau d=2; H and S only",
         "bell_backend": "QuickQudits Tableau d=2; same Clifford Bell observables as qutrit_tableau_clifford",
         "encoding": {"0": "00", "1": "01", "2": "10", "invalid": "11"},
         "transpiled_gates": "qutrit X -> X(q0), CX(q0,q1), CX(q1,q0); invalid 11 fixed",

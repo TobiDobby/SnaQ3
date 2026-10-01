@@ -140,7 +140,7 @@ def _metadata(config):
         "quickqudits_version": quickqudits.__version__,
         "workload": "two length-m sparse logical arrays; identical deterministic inputs, resolver seeds, and four-cell-per-player updates for shared m; no board geometry",
         "quantum_apple_preparation": "excluded from timing; synthetic traces use fixed apple-valued digits, not playable apple preparation",
-        "runtime_boundary": "full two-grid preparation, movement registers, exact Bell resolver, grid updates; worker startup and warm-up excluded",
+        "runtime_boundary": "full two-grid preparation, exact Bell resolver with classical direction labels, grid updates; worker startup and warm-up excluded",
         "memory": "four complex128 dense vectors; configured and available host/cgroup guards; worker RLIMIT_AS",
         "confidence_interval": f"deterministic percentile bootstrap across completed repetitions ({BOOTSTRAP_DRAWS} draws)",
         "interpretation": "synthetic points measure register representation scaling only; they are not playable SnaQ3 grids",

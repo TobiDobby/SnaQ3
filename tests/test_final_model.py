@@ -2,7 +2,6 @@ import unittest
 from math import pi
 from random import Random
 
-import numpy as np
 import quickqudits as qq
 
 from snaq3.grid import Grid
@@ -13,7 +12,7 @@ from snaq3.benchmark import (EXACT_PAIR, TABLEAU_PAIR, _check_pair_agreement,
                              payoff_samples, replay_runtime_workload,
                              runtime_workload, run_payoff_experiment,
                              run_runtime_experiment)
-from snaq3.movement import PHASES, phase_to_input, prepare_movement
+from snaq3.movement import DIRECTIONS, DIRECTION_NAMES
 from snaq3.payoff import PAYOFF, movement_policy, utility, wins
 from snaq3.resolver import (P_QUANTUM, clifford_mapping, exact_probabilities,
                             tableau_circuit)
@@ -42,12 +41,9 @@ class FinalModelTests(unittest.TestCase):
         self.assertEqual(movement_policy(1, 2, (.75, .75)), (1, 2))
         self.assertEqual(movement_policy(1, 2, (0, 0)), (None, None))
 
-    def test_movement_register(self):
-        for x, phi in enumerate(PHASES):
-            self.assertEqual(phase_to_input(phi), x)
-            state = prepare_movement(x)
-            self.assertAlmostEqual(abs(state[0]) ** 2, .5)
-            self.assertAlmostEqual(state[1] / state[0], np.exp(1j * phi))
+    def test_classical_direction_labels(self):
+        self.assertEqual(DIRECTION_NAMES, ("UP", "RIGHT", "DOWN", "LEFT"))
+        self.assertEqual(DIRECTIONS, ((-1, 0), (0, 1), (1, 0), (0, -1)))
 
     def test_analytical_exact_and_classical(self):
         p = f_a = f_b = 0
@@ -181,15 +177,81 @@ class FinalModelTests(unittest.TestCase):
             _check_pair_agreement({TABLEAU_PAIR[0]: (0, 0), TABLEAU_PAIR[1]: (1, 0)},
                                   TABLEAU_PAIR)
 
-    def test_tableau_movement_never_uses_statevector_path(self):
+    def test_legacy_tableau_movement_is_not_used_by_gameplay(self):
         from snaq3.simulation.qutrit_tableau import QutritTableau
         from snaq3.simulation.qubit_tableau_transpiled import QubitTableauTranspiled
-        with patch("snaq3.model.prepare_movement", side_effect=AssertionError("statevector movement")):
-            for cls in (QutritTableau, QubitTableauTranspiled):
-                backend = cls()
-                for x in range(4):
-                    self.assertIsInstance(backend.prepare_movement(x), qq.Tableau)
+        for cls in (QutritTableau, QubitTableauTranspiled):
+            backend = cls()
+            for x in range(4):
+                self.assertIsInstance(backend.prepare_movement(x), qq.Tableau)
+            with patch.object(backend, "prepare_movement", side_effect=AssertionError("unused legacy path")):
                 backend.run(3, [(0, 0)], 71)
+
+    def test_gameplay_passes_classical_directions_and_updates_qutrit_grid(self):
+        from snaq3.simulation.qutrit_circuit import QutritCircuit
+        first = Grid(3, [(1, 1)], {(0, 0)})
+        second = Grid(3, [(1, 1)], {(0, 0)})
+        backend = QutritCircuit()
+        backend.prepare_movement = unittest.mock.Mock(side_effect=AssertionError("unused movement state"))
+        original_move = Grid.move
+        moves = []
+        registers = []
+
+        def record_move(grid, direction, rng):
+            moves.append(direction)
+            return original_move(grid, direction, rng)
+
+        def make_grid(digits):
+            register = CircuitGrid(digits)
+            registers.append(register)
+            return register
+
+        with patch.object(Grid, "initial", side_effect=[first, second]), \
+             patch.object(Grid, "move", record_move), \
+             patch.object(backend, "resolve", return_value=(1, 0)) as resolve, \
+             patch.object(backend, "make_grid", side_effect=make_grid):
+            result = backend.run(3, [(1, 3)], 71)
+        self.assertEqual(resolve.call_args.args[:2], (1, 3))
+        self.assertEqual(moves, [1, 3])
+        self.assertEqual(result.metadata["rounds_executed"], 1)
+        for register, grid in zip(registers, (first, second)):
+            digits = grid.digits()
+            self.assertEqual(register.digits, list(digits))
+            basis = sum(value * 3**(8-i) for i, value in enumerate(digits))
+            self.assertAlmostEqual(abs(register.state[basis]), 1)
+        self.assertEqual(first.body[0], (1, 2))
+        self.assertEqual(second.body[0], (1, 0))
+
+    def test_runtime_replay_uses_classical_resolver_inputs_only(self):
+        from snaq3.simulation.qutrit_circuit import QutritCircuit
+        workload = runtime_workload(9, 2, 52, 0)
+        backend = QutritCircuit()
+        backend.prepare_movement = unittest.mock.Mock(side_effect=AssertionError("unused movement state"))
+        with patch.object(backend, "resolve", return_value=(0, 0)) as resolve:
+            grids = replay_runtime_workload(backend, workload)
+        self.assertEqual([call.args for call in resolve.call_args_list],
+                         [(x_a, x_b, seed) for (x_a, x_b), seed in
+                          zip(workload.inputs, workload.resolver_seeds)])
+        self.assertEqual(tuple(tuple(grid.digits) for grid in grids), workload.targets[-1])
+
+    def test_paper_payoff_plot_accepts_exact_statevectors_only(self):
+        import csv
+        import tempfile
+        from pathlib import Path
+        from snaq3.plotting import plot_payoff
+
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            with (output / "payoff_summary.csv").open("w", newline="") as stream:
+                writer = csv.DictWriter(stream, fieldnames=("backend", "mean_F_avg",
+                                                           "ci95_low_F_avg", "ci95_high_F_avg"))
+                writer.writeheader()
+                for backend in EXACT_PAIR:
+                    writer.writerow({"backend": backend, "mean_F_avg": .64,
+                                     "ci95_low_F_avg": .63, "ci95_high_F_avg": .65})
+            plot_payoff(output)
+            self.assertTrue((output / "payoff_by_backend.pdf").exists())
+            self.assertTrue((output / "payoff_by_backend.png").exists())
 
     def test_tableau_runtime_has_no_dense_execution_or_sampling(self):
         workload = runtime_workload(9, 2, 105, 0)

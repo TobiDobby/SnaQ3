@@ -1,14 +1,13 @@
 # SnaQ3
 
-SnaQ3 simulates two independent Snake grids of qutrit occupation states (`|0>` empty, `|1>` snake, `|2>` apple). Each player has a separate qubit movement register. A separate two-qubit Bell pair resolves conflicting directions. The four directions lift two CHSH measurement settings to inputs in `Z4`; the winning rule is `a XOR b = (x_A & x_B) & 1`. Only the Bell pair is entangled.
+SnaQ3 simulates two independent Snake grids of qutrit occupation states (`|0>` empty, `|1>` snake, `|2>` apple). Directions are classical labels in `Z4`. A separate two-qubit Bell pair resolves conflicting directions; its outputs select classical Snake moves, after which the qutrit statevectors are updated to represent the grids. The four directions lift two CHSH measurement settings; the winning rule is `a XOR b = (x_A & x_B) & 1`. Only the Bell pair is entangled.
 
 ## Architecture
 
 ```text
-player A qutrit grid ──┐
-                       ├─ classical directions ─ Bell resolver ─ payoff ─ grid updates
-player B qutrit grid ──┘          ↑
-                         separate movement registers
+classical directions ─ Bell resolver ─ payoff and movement policy ─ classical Snake moves
+                                                                       ↓
+                           player A and B qutrit statevectors updated to match the grids
 ```
 
 Gameplay uses QuickQudits qutrit circuits to prepare `(|0>+|2>)/sqrt(2)` and measure **each empty cell independently** when apples are initialized or exhausted. QuickQudits 1.0.1 lacks `U_H302`; `grid.py` supplies that one-qutrit gate matrix. Snake cells are excluded. Consuming an apple adds one score point and grows the snake; a new batch is prepared only when no apples remain. The runtime benchmarks deliberately exclude this quantum apple preparation and replay a pre-generated, matched grid-update trace.
@@ -48,7 +47,7 @@ python3 -m venv .venv
 
 ### Full-grid runtime scaling
 
-This resumable experiment times two full player grids, movement preparation, Bell resolution, and fixed grid updates. One pre-generated trace is shared across backends at the same playable `n`; Bell outcomes do not change that trace. `n=2` for the qubit statevector is a marked synthetic scaling point. Pre-generating classical apple-valued trace data is outside the timer. OOM and timeout rows have no runtime value.
+This resumable experiment now times two full player grids, Bell resolution from classical direction labels, and fixed grid updates. One pre-generated trace is shared across backends at the same playable `n`; Bell outcomes do not change that trace. `n=2` for the qubit statevector is a marked synthetic scaling point. Pre-generating classical apple-valued trace data is outside the timer. OOM and timeout rows have no runtime value. The committed runtime CSVs were collected before removal of the unused movement-state preparation calls and retain that older timing boundary.
 
 ```sh
 .venv/bin/python -m snaq3.scaling_benchmark \
@@ -79,7 +78,7 @@ Both long runtime commands checkpoint every observation. `--resume` skips record
 
 The final datasets are `results/payoff_raw.csv`, `results/payoff_summary.csv`, `results/runtime/runtime_scaling_raw.csv`, `results/runtime/runtime_scaling_summary.csv`, `results/dense_synthetic_raw.csv`, and `results/dense_synthetic_summary.csv`. Their companion metadata JSON files record seeds, rounds or shots, memory limits, QuickQudits version, and workload definitions. `results/clifford_observable_mapping.json` records the tableau angle mapping.
 
-The resolver figure is `results/payoff_by_backend.{pdf,png}`. The runtime figure is `results/runtime_vs_grid_size.{pdf,png}`: filled markers are playable square grids, hollow markers are synthetic register sizes, and failure markers are not runtimes. Regenerate both directly from the retained summary CSVs, without executing a benchmark:
+The resolver figure is `results/payoff_by_backend.{pdf,png}`. The runtime figure is `results/runtime_vs_grid_size.{pdf,png}` and shows only the two QuickQudits statevector backends. Filled markers are playable square grids, hollow markers are synthetic register sizes, and failure markers are not runtimes. Regenerate both directly from the retained summary CSVs, without executing a benchmark:
 
 ```sh
 .venv/bin/python -m snaq3.plotting --payoff-only --output-directory results

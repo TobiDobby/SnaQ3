@@ -219,7 +219,7 @@ def _metadata(config: ScalingConfig):
             "quantum_apple_preparation": "excluded from timing; benchmark-only classical apple trace generated before the timed backend replay",
             "synthetic_n2": "qubit statevector only; basis-state head/tail updates; normal Grid keeps n>=3",
             "memory": "dense: four complex128 vectors; tableau: eight times one QuickQudits tableau array set; guard uses configured and available host/cgroup memory; worker RLIMIT_AS",
-            "runtime_boundary": "full two-grid preparation, movement registers, Bell resolver, grid updates; worker startup and warm-up excluded",
+            "runtime_boundary": "full two-grid preparation, Bell resolver with classical direction labels, grid updates; worker startup and warm-up excluded",
             "timeout": "worker SIGALRM plus parent hard stop after startup grace",
             "confidence_interval": f"deterministic percentile bootstrap across completed repetitions ({BOOTSTRAP_DRAWS} draws)"}
 

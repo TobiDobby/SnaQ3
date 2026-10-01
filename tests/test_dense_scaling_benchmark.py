@@ -161,13 +161,12 @@ class DenseScalingTests(unittest.TestCase):
             with patch.object(scaling_plotting, "plot_scaling_axis", side_effect=capture):
                 plot_scaling(output)
             self.assertEqual(len(seen), 1)
-            self.assertEqual(len(seen[0]), 39)
+            self.assertTrue(seen[0])
+            self.assertEqual({row["backend"] for row in seen[0]},
+                             set(scaling_plotting.STATEVECTOR_BACKENDS))
             self.assertTrue(any(row["backend"] == "qutrit_circuit_exact"
                                 and row["grid_cells_per_player"] == "6"
                                 and row["synthetic_scaling_point"] == "True"
-                                for row in seen[0]))
-            self.assertTrue(any(row["backend"] == "qutrit_tableau_clifford"
-                                and row["grid_cells_per_player"] == "3600"
                                 for row in seen[0]))
             self.assertTrue(any(row["backend"] == "qutrit_circuit_exact"
                                 and row["grid_cells_per_player"] == "25"

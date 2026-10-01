@@ -14,7 +14,6 @@ from time import perf_counter
 import quickqudits
 
 from .grid import Grid
-from .movement import prepare_movement
 from .payoff import utility, wins
 from .resolver import clifford_mapping
 from .simulation import BACKENDS
@@ -98,13 +97,13 @@ def runtime_workload(grid_size: int, rounds: int, master_seed: int, repetition: 
 
 
 def replay_runtime_workload(backend, workload: RuntimeWorkload):
-    """Execute one full register per player; Bell outcomes cannot change this trace."""
+    """Execute grid registers, classical-label Bell resolution, and grid updates.
+
+    Bell outcomes cannot change the predetermined classical grid trace.
+    """
     grids = [backend.make_grid(digits) for digits in workload.initial_grids]
-    movement = getattr(backend, "prepare_movement", prepare_movement)
     for (x_a, x_b), resolver_seed, targets in zip(workload.inputs, workload.resolver_seeds,
                                                   workload.targets):
-        movement(x_a)
-        movement(x_b)
         backend.resolve(x_a, x_b, resolver_seed)
         for grid, digits in zip(grids, targets):
             grid.set_digits(digits)
@@ -298,7 +297,7 @@ def run_runtime_experiment(grid_sizes=(9, 16, 25), rounds=4,
         "quantum_apple_preparation": "excluded: fixed traces are generated before timing with benchmark-only classical apple metadata; no U_H302 or apple measurement is timed",
         "resolver_seeds": "Random(derived resolver seed).getrandbits(64) in round order; shared across backends",
         "confidence_interval": f"percentile bootstrap of repetition means, {BOOTSTRAP_DRAWS} draws, deterministic derived seed shared at each grid size",
-        "runtime_boundary": "replay_runtime_workload: full two-grid preparation, movement registers, Bell preparation/sampling, grid updates",
+        "runtime_boundary": "replay_runtime_workload: full two-grid preparation, Bell preparation/sampling with classical direction labels, grid updates",
         "memory_guard": "two player vectors plus two workspace vectors; configured ceiling and half available memory",
         "max_statevector_gib": max_statevector_gib, "quickqudits_version": quickqudits.__version__}, indent=2) + "\n")
     return rows, summary

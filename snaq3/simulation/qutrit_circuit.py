@@ -34,7 +34,7 @@ class QutritCircuit:
     metadata = {"grid_backend": "two full QuickQudits QuantumCircuit d=3 statevectors",
                 "memory_guard": "four dense vectors within configured ceiling and half available memory",
                 "bell_backend": "QuickQudits QuantumCircuit d=2",
-                "gate_sequence": "grid X; movement H S^x; Bell H(0) CX(0,1); observable Sdag H T^k H S",
+                "gate_sequence": "grid qutrit X updates; exact Bell H(0) CX(0,1); observable Sdag H T^k H S",
                 "observable_angles": {"Alice": ALICE_ANGLES, "Bob": BOB_ANGLES}}
 
     def make_grid(self, digits):

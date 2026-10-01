@@ -140,9 +140,9 @@ class ScalingBenchmarkTests(unittest.TestCase):
 
     def test_interruption_leaves_checkpoint_and_partial_plot(self):
         with tempfile.TemporaryDirectory() as directory:
-            config = ScalingConfig(qutrit_sv_n=(), qutrit_tableau_n=(3, 4),
+            config = ScalingConfig(qutrit_sv_n=(3, 4), qutrit_tableau_n=(),
                                    qubit_sv_n=(), qubit_tableau_n=(), rounds=1,
-                                   tableau_repetitions=2, output_directory=Path(directory))
+                                   dense_repetitions=2, output_directory=Path(directory))
             with patch("snaq3.scaling_benchmark._measure", side_effect=[
                 {"status": "COMPLETED", "runtime_seconds": .1}, KeyboardInterrupt]):
                 rows, summary = run_scaling(config)

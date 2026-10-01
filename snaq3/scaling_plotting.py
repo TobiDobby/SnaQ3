@@ -5,15 +5,10 @@ import csv
 import json
 from pathlib import Path
 
-from .simulation import BACKENDS
-
-BACKEND_ORDER = tuple(BACKENDS)
-LABELS = {"qutrit_circuit_exact": "Qutrit SV",
-          "qutrit_tableau_clifford": "Qutrit Tableau",
-          "qubit_transpiled": "Qubit SV",
-          "qubit_tableau_transpiled": "Qubit Tableau"}
-COLORS = dict(zip(BACKEND_ORDER, ("#176b9a", "#d17c23", "#27815a", "#a04e84")))
-MARKERS = dict(zip(BACKEND_ORDER, ("o", "s", "D", "^")))
+STATEVECTOR_BACKENDS = ("qutrit_circuit_exact", "qubit_transpiled")
+LABELS = {"qutrit_circuit_exact": "Qutrit SV", "qubit_transpiled": "Qubit SV"}
+COLORS = {"qutrit_circuit_exact": "#176b9a", "qubit_transpiled": "#27815a"}
+MARKERS = {"qutrit_circuit_exact": "o", "qubit_transpiled": "D"}
 
 
 def _read_optional(path):
@@ -50,7 +45,8 @@ def plot_scaling_axis(ax, real_summary, synthetic_summary):
     from matplotlib.lines import Line2D
     from matplotlib.patches import Rectangle
 
-    rows = merged_rows(real_summary, synthetic_summary)
+    rows = [row for row in merged_rows(real_summary, synthetic_summary)
+            if row["backend"] in STATEVECTOR_BACKENDS]
     if not rows:
         return rows
     cells = [int(row["grid_cells_per_player"]) for row in rows]
@@ -61,7 +57,7 @@ def plot_scaling_axis(ax, real_summary, synthetic_summary):
     ax.add_patch(Rectangle((xlim[0], 0), xlim[1] - xlim[0], .11,
                            transform=ax.get_xaxis_transform(), facecolor="0.965",
                            edgecolor="none", zorder=0))
-    for index, backend in enumerate(BACKEND_ORDER):
+    for index, backend in enumerate(STATEVECTOR_BACKENDS):
         backend_rows = sorted((row for row in rows if row["backend"] == backend),
                               key=lambda row: int(row["grid_cells_per_player"]))
         for row in backend_rows:
@@ -97,7 +93,7 @@ def plot_scaling_axis(ax, real_summary, synthetic_summary):
     ax.set_ylabel("Runtime (s, log scale)")
     ax.grid(axis="y", which="major", alpha=.2)
     handles = [Line2D([], [], marker=MARKERS[b], color=COLORS[b], ls="None",
-                      markerfacecolor=COLORS[b], label=LABELS[b]) for b in BACKEND_ORDER]
+                      markerfacecolor=COLORS[b], label=LABELS[b]) for b in STATEVECTOR_BACKENDS]
     handles += [Line2D([], [], marker="o", color="0.35", markerfacecolor="0.35",
                        ls="None", label="Filled = playable grid"),
                 Line2D([], [], marker="o", color="0.35", markerfacecolor="none",
@@ -136,6 +132,7 @@ def plot_scaling(output: Path, summary: list[dict] | None = None,
         "x_axis": "logical qutrit cells per player m, logarithmic; synthetic sizes need not be square",
         "y_axis": "measured runtime in seconds, logarithmic",
         "sources": [runtime_source, "dense_synthetic_summary.csv"],
+        "backends": list(STATEVECTOR_BACKENDS),
         "overlap_rule": "full-grid observation takes precedence over synthetic observation for the same backend and m",
         "successful_measurements": "backend-colored points; 95% CI only when at least two repetitions completed; no lines",
         "filled": "playable square SnaQ3 grid",

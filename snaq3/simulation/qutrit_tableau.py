@@ -26,7 +26,6 @@ class TableauGrid:
 class QutritTableau:
     name = "qutrit_tableau_clifford"
     metadata = {"grid_backend": "QuickQudits Tableau d=3; X only",
-                "movement_backend": "QuickQudits Tableau d=2; H and S only",
                 "bell_backend": "QuickQudits Tableau d=2; H CX and Clifford observables",
                 "observable_mapping": clifford_mapping()}
 

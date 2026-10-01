@@ -5,7 +5,6 @@ from random import Random
 from typing import Protocol
 
 from .grid import Grid
-from .movement import PHASES, phase_to_input, prepare_movement
 from .payoff import movement_policy, utility, wins
 
 
@@ -35,11 +34,6 @@ def run_game(backend, n: int, inputs: list[tuple[int, int]], seed: int) -> Simul
     successes = 0
     rounds = 0
     for x_a, x_b in inputs:
-        movement_preparer = getattr(backend, "prepare_movement", prepare_movement)
-        movement_preparer(x_a)
-        movement_preparer(x_b)
-        assert phase_to_input(PHASES[x_a]) == x_a
-        assert phase_to_input(PHASES[x_b]) == x_b
         a, b = backend.resolve(x_a, x_b, resolver_rng.getrandbits(64))
         payoff = utility(x_a, x_b, a, b)
         successes += wins(x_a, x_b, a, b)
